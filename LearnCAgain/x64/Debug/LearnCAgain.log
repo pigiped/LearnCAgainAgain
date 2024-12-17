@@ -1,2 +1,3 @@
 ﻿  main.c
+C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(144,8): warning C4244: 'function': conversion from 'time_t' to 'unsigned int', possible loss of data
   LearnCAgain.vcxproj -> C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\x64\Debug\LearnCAgain.exe
