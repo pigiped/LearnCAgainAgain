@@ -1,55 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <SDL.h>
-#include <SDL_image.h>
 #include <time.h>
+#include "main.h"
+#include "status.h"
 
 #define GRAVITY 0.35f
 
-typedef struct
-{
-	float x, y;
-	float dx, dy;
-	short life;
-	char* name;
-	int onLedge;
-
-	int animFrame, facingRight, slowingDown;
-} Man;
-
-typedef struct {
-	int x, y;
-} Crystal;
-
-typedef struct {
-	int x, y, w, h;
-} Ledge;
-
-typedef struct
-{
-	// Players
-	Man man;
-
-	// Crystals
-	Crystal crystals[100];
-
-	// Ledges
-	Ledge ledges[100];
-
-	// Images
-	SDL_Texture* crystal;
-	SDL_Texture* menFrames[2];
-	SDL_Texture* brick;
-
-	int time;
-
-	// Renderer
-	SDL_Renderer* renderer;
-} GameState;
-
+// carico e inizializzo texure variabili e posizioni degli oggetti
 void loadGame(GameState *game)
 {
-	SDL_Surface* surface = NULL;
+	SDL_Surface* surface = NULL; // creo una superfice per caricare i file .png e poi trasformarli in texture
 
 	// Load images and create rendering textures from them
 	surface = IMG_Load("crystal.png");
@@ -59,18 +20,16 @@ void loadGame(GameState *game)
 		SDL_Quit();
 		exit(1);
 	}
-
 	game->crystal = SDL_CreateTextureFromSurface(game->renderer, surface);		// carico la texture dalla surface nell'attributo
 	SDL_FreeSurface(surface);												// libero la memoria occupata dalla surface
 
-	surface = IMG_Load("man_1.png");
+	surface = IMG_Load("man_1.png"); // ripeto per tutte le texture
 	if (surface == NULL)
 	{
 		printf("Cannot find man_1.png!\n\n");
 		SDL_Quit();
 		exit(1);
 	}
-
 	game->menFrames[0] = SDL_CreateTextureFromSurface(game->renderer, surface);
 	SDL_FreeSurface(surface);
 
@@ -81,7 +40,6 @@ void loadGame(GameState *game)
 		SDL_Quit();
 		exit(1);
 	}
-
 	game->menFrames[1] = SDL_CreateTextureFromSurface(game->renderer, surface);
 	SDL_FreeSurface(surface);
 
@@ -92,10 +50,21 @@ void loadGame(GameState *game)
 		SDL_Quit();
 		exit(1);
 	}
-
 	game->brick = SDL_CreateTextureFromSurface(game->renderer, surface);
 	SDL_FreeSurface(surface);
 
+	// load fonts
+	game->font = TTF_OpenFont("crazy-pixel.ttf", 48);
+	if (game->font == NULL)
+	{
+		printf("Cannot find font file!\n\n");
+		SDL_Quit();
+		exit(1);
+	}
+
+	game->label = NULL;
+
+	// inizializzo le variabili e posizioni
 	game->man.x = 320 - 40;
 	game->man.y = 240 - 40;
 	game->man.dx = 0;
@@ -104,8 +73,14 @@ void loadGame(GameState *game)
 	game->man.animFrame = 0;
 	game->man.facingRight = 0;
 	game->man.slowingDown = 0;
+	game->man.lives = 3;
+	game->man.isDead = 0;
+	game->statusState = STATUS_STATE_LIVES;
+
+	init_status_lives(game);
 
 	game->time = 0;
+	game->scrollX = 0;
 
 	// init crystals
 	for (int i = 0; i < 100; i++)
@@ -129,42 +104,64 @@ void loadGame(GameState *game)
 	game->ledges[98].y = 350;
 }
 
+void process(GameState* game)
+{
+	// add time
+	game->time++;
+
+	if (game->time > 120)
+	{
+		shutdown_status_lives(game);
+		game->statusState = STATUS_STATE_GAME;
+	}
+
+	if(game->statusState == STATUS_STATE_GAME)
+	{
+		if (!game->man.isDead)
+		{
+			// man movement
+			Man* man = &game->man; // assegno puntatore a man per non riscriverlo ogni volta
+			man->x += man->dx;
+			man->y += man->dy;
+
+			if (man->dx != 0 && man->onLedge && !man->slowingDown) // se il player è in movimento, per terra e non sta rallentando lo animo
+			{
+				if (game->time % 10 == 0) //ogni 10 frame cambio animFrame
+				{
+					if (man->animFrame == 0)
+					{
+						man->animFrame = 1;
+					}
+					else
+					{
+						man->animFrame = 0;
+					}
+				}
+			}
+			man->dy += GRAVITY; // aggiungo la gravità alla velocità verticale
+		}
+	}
+
+	game->scrollX = -game->man.x + 320;
+	if (game->scrollX > 0)
+		game->scrollX = 0;
+}
+
 //useful utility function to see if two rectangles are colliding at all
 int collide2d(float x1, float y1, float x2, float y2, float wt1, float ht1, float wt2, float ht2)
 {
 	return(!((x1 > (x2 + wt2)) || (x2 > (x1 + wt1)) || (y1 > (y2 + ht2)) || (y2 > (y1 + ht1))));
 }
 
-void process(GameState* game)
-{
-	//add time
-	game->time++;
-
-	//man movement
-	Man* man = &game->man;
-	man->x += man->dx;
-	man->y += man->dy;
-
-	if (man->dx != 0 && man->onLedge && !man->slowingDown)
-	{
-		if (game->time % 10 == 0)
-		{
-			if (man->animFrame == 0)
-			{
-				man->animFrame = 1;
-			}
-			else
-			{
-				man->animFrame = 0;
-			}
-		}
-	}
-
-	man->dy += GRAVITY;
-}
-
 void collisionDetect(GameState* game)
 {
+	for (int i = 0; i < 100; i++)
+	{
+		if (collide2d(game->man.x, game->man.y, game->crystals[i].x, game->crystals[i].y, 48, 48, 64, 64))
+		{
+			game->man.isDead = 1;
+		}
+	}
 	// Check for collision with any  ledges (bricks clocks)
 	for (int i = 0; i < 100; i++)
 	{
@@ -174,7 +171,7 @@ void collisionDetect(GameState* game)
 
 		if (mx+mw /2 > bx && mx+mw /2 < bx+bw)
 		{
-			// controllo se sbatte la capoccia
+			// controllo se sbatte la capoccia e sta saltando (la y funziona al contrario)
 			if (my < by+bh && my > by && game->man.dy < 0)
 			{
 				//correggo y
@@ -189,7 +186,7 @@ void collisionDetect(GameState* game)
 		//controllo se intersecano sull'asse x
 		if (mx+mw > bx && mx < bx+bw)
 		{
-			// controllo se sto per terra
+			// controllo se sto per terra e non sto saltando
 			if (my+mh > by && my < by && game->man.dy > 0)
 			{
 				//correggo y
@@ -204,7 +201,7 @@ void collisionDetect(GameState* game)
 		//controllo se intersecano sull'asse y
 		if (my+mh > by && my<by+bh)
 		{
-			// m interseca a sinistra, quindi tocca il muro a sx
+			// m interseca a sinistra, quindi tocca il muro a sx e mi sto muovendo a sx
 			if (mx < bx+bw && mx+mw > bx+bw && game->man.dx < 0)
 			{
 				// correggo x
@@ -213,7 +210,7 @@ void collisionDetect(GameState* game)
 
 				game->man.dx = 0;
 			}
-			else if (mx+mw > bx && mx < bx && game->man.dx > 0) // m interseca a destra, quindi tocca il muro a dx
+			else if (mx+mw > bx && mx < bx && game->man.dx > 0) // m interseca a destra, quindi tocca il muro a dx e mi sto muovendo a dx
 			{
 				// correggo x
 				game->man.x = bx-mw;
@@ -230,9 +227,9 @@ int processEvents(SDL_Window* window, GameState* game)
 	SDL_Event event;
 	int done = 0;
 
-	while (SDL_PollEvent(&event))
+	while (SDL_PollEvent(&event))	// finchè escono eventi li processo
 	{
-		switch (event.type)
+		switch (event.type)	//tipo di eveno
 		{
 		case SDL_WINDOWEVENT_CLOSE:
 		{
@@ -244,15 +241,15 @@ int processEvents(SDL_Window* window, GameState* game)
 			}
 		}
 		break;
-		case SDL_KEYDOWN:
+		case SDL_KEYDOWN: // premuto sulla tastiera
 		{
-			switch (event.key.keysym.sym)
+			switch (event.key.keysym.sym) // cosa ho premuto
 			{
 			case SDLK_ESCAPE:
 				done = 1;
 				break;
 			case SDLK_UP:
-				if (game->man.onLedge)
+				if (game->man.onLedge) // se sto per terra posso saltare
 				{
 					game->man.dy = -8;
 					game->man.onLedge = 0;
@@ -268,13 +265,13 @@ int processEvents(SDL_Window* window, GameState* game)
 
 
 	//More jumping
-	const Uint8* state = SDL_GetKeyboardState(NULL);
+	const Uint8* state = SDL_GetKeyboardState(NULL); // controllo se un pulsante è tenuto premuto
 	if (state[SDL_SCANCODE_UP])
 	{
-		game->man.dy -= 0.2f;
+		game->man.dy -= 0.2f; // alzo leggermente il salto se tengo premuto freccia su
 	}
 
-	//walking
+	//walking, accelero fino a una certa soglia
 	if (state[SDL_SCANCODE_LEFT])
 	{
 		game->man.dx -= 0.5;
@@ -282,6 +279,7 @@ int processEvents(SDL_Window* window, GameState* game)
 		{
 			game->man.dx = -6;
 		}
+		// setto i flag per l'animazione
 		game->man.facingRight = 0;
 		game->man.slowingDown = 0;
 	}
@@ -295,67 +293,64 @@ int processEvents(SDL_Window* window, GameState* game)
 		game->man.facingRight = 1;
 		game->man.slowingDown = 0;
 	}
-	else {
+	else {							// se non sto premendo nulla rallento gradualmente
 		game->man.animFrame = 0;
-		game->man.dx *= 0.8f;
+		game->man.dx *= 0.8f;		// 20% in meno ogni frame
 		game->man.slowingDown = 1;
-		if (fabsf(game->man.dx) < 0.1f)
+		if (fabsf(game->man.dx) < 0.1f)	// fino a che prendo l'absoluto sotto 0.1 e lo rendo 0
 		{
 			game->man.dx = 0;
 		}
 	}
-	//if (state[SDL_SCANCODE_UP])
-	//{
-	//	game->man.y -= 10;
-	//}
-	//if (state[SDL_SCANCODE_DOWN])
-	//{
-	//	game->man.y += 10;
-	//}
 	return done;
 }
 
 void doRender(SDL_Renderer* renderer, GameState* game)
 {
-	// Set render color to blue
-	SDL_SetRenderDrawColor(renderer, 128, 128, 255, 255);
-
-	// Clear the screen
-	SDL_RenderClear(renderer);
-
-	// Set render color to white
-	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-
-	//draw the ledges
-	for (int i = 0; i < 100; i++)
+	if (game->statusState == STATUS_STATE_LIVES)
 	{
-		SDL_Rect ledgeRect = { game->ledges[i].x,game->ledges[i].y,game->ledges[i].w,game->ledges[i].h };
-		SDL_RenderCopy(renderer, game->brick, NULL, &ledgeRect);
+		draw_status_lives(game);
 	}
+	else if (game->statusState == STATUS_STATE_GAME)
+	{
+		// Set render color to blue
+		SDL_SetRenderDrawColor(renderer, 128, 128, 255, 255);
 
-	// draw rectangle at man position
-	SDL_Rect rect = { game->man.x,game->man.y,48,48 };
-	SDL_RenderCopyEx(renderer, game->menFrames[game->man.animFrame], NULL, &rect, 0, NULL, game->man.facingRight);
+		// Clear the screen
+		SDL_RenderClear(renderer);
 
-	//draw the crystal image
-	//for (int i = 0; i < 100; i++)
-	//{
-	//	SDL_Rect crystalRect = { game->crystals[i].x,game->crystals[i].y,64,64};
-	//	SDL_RenderCopy(renderer, game->crystal, NULL, &crystalRect);
-	//}
+		// Set render color to white
+		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
+		//draw the ledges
+		for (int i = 0; i < 100; i++)
+		{
+			// do le dimensioni del rect che conterrà la texture e ce la copio dentro
+			SDL_Rect ledgeRect = { game->scrollX + game->ledges[i].x,game->ledges[i].y,game->ledges[i].w,game->ledges[i].h };
+			SDL_RenderCopy(renderer, game->brick, NULL, &ledgeRect);
+		}
+
+		// draw rectangle at man position
+		SDL_Rect rect = { game->scrollX + game->man.x,game->man.y,48,48 };
+		SDL_RenderCopyEx(renderer, game->menFrames[game->man.animFrame], NULL, &rect, 0, NULL, game->man.facingRight);
+
+		if (game->man.isDead)
+		{
+			// draw fire over him
+		}
+	}
 	// We are done drawing, "present" or show to the screen what we've drawn
 	SDL_RenderPresent(renderer);
 }
 
 int main(int argc, char* args[]) {
-	GameState gameState;
+	GameState gameState;				// Declare the game state
 	SDL_Window* window = NULL;			// Declare a window
 	SDL_Renderer* renderer = NULL;		// Declare a renderer
 
 	SDL_Init(SDL_INIT_VIDEO);	// Initialize SDL2
 
-	srand(time(0));
+	srand(time(0));				// give seed to random
 
 	// Create an application window with the following settings:
 	window = SDL_CreateWindow(
@@ -366,8 +361,10 @@ int main(int argc, char* args[]) {
 		480,						// height in pixel
 		0);							// flags
 
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-	gameState.renderer = renderer;
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC); //impostazioni di render
+	gameState.renderer = renderer;										//con VSYNC non ho bisogno di settare un delay ai processi di render
+
+	TTF_Init(); //initialize font system
 
 	loadGame(&gameState);
 
@@ -392,10 +389,19 @@ int main(int argc, char* args[]) {
 
 	// Shutdown game and unload all memory
 	SDL_DestroyTexture(gameState.crystal);
+	SDL_DestroyTexture(gameState.menFrames[0]);
+	SDL_DestroyTexture(gameState.menFrames[1]);
+	SDL_DestroyTexture(gameState.brick);
+	if (gameState.label != NULL)
+		SDL_DestroyTexture(gameState.label);
+	TTF_CloseFont(gameState.font);
 
 	// Close and destroy the window
 	SDL_DestroyWindow(window);
 	SDL_DestroyRenderer(renderer);
+
+	//clear font
+	TTF_Quit();
 
 	// Clean up
 	SDL_Quit();

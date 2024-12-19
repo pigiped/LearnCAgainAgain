@@ -18,5 +18,16 @@
     <ClCompile Include="main.c">
       <Filter>File di origine</Filter>
     </ClCompile>
+    <ClCompile Include="status.c">
+      <Filter>File di origine</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="main.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
+    <ClInclude Include="status.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

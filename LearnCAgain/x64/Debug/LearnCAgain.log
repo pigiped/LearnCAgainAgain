@@ -1,9 +1,10 @@
 ﻿  main.c
-C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(173,29): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(173,53): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(173,77): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(173,101): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(337,29): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
-C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(337,41): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
-C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(358,8): warning C4244: 'function': conversion from 'time_t' to 'unsigned int', possible loss of data
+C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(159,29): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(159,53): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(159,77): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(159,101): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(318,41): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(323,35): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(323,58): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\LearnCAgain\main.c(337,8): warning C4244: 'function': conversion from 'time_t' to 'unsigned int', possible loss of data
   LearnCAgain.vcxproj -> C:\Users\pierluigi_pedicone\source\repos\LearnCAgain\x64\Debug\LearnCAgain.exe
